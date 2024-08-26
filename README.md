@@ -1,2 +1,2 @@
-# Ballers
-Player Lineup Calculator
+# Wheelchair Basketball
+Player lineup calculator for NWBA
