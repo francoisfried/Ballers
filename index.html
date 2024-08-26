@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Selection</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        select { margin-bottom: 10px; }
+        #total { margin-top: 20px; font-size: 20px; }
+    </style>
+</head>
+<body>
+    <h3>Player Lineup Calculator</h3>
+    <form id="playerForm">
+        <div>
+            <label for="dropdown1">Player 1:</label>
+            <select id="dropdown1" onchange="updateSelections(); updateTotal();"></select>
+        </div>
+        <div>
+            <label for="dropdown2">Player 2:</label>
+            <select id="dropdown2" onchange="updateSelections(); updateTotal();"></select>
+        </div>
+        <div>
+            <label for="dropdown3">Player 3:</label>
+            <select id="dropdown3" onchange="updateSelections(); updateTotal();"></select>
+        </div>
+        <div>
+            <label for="dropdown4">Player 4:</label>
+            <select id="dropdown4" onchange="updateSelections(); updateTotal();"></select>
+        </div>
+        <div>
+            <label for="dropdown5">Player 5:</label>
+            <select id="dropdown5" onchange="updateSelections(); updateTotal();"></select>
+        </div>
+        <div id="total">Total: 0.0</div>
+    </form>
+
+    <script>
+        const players = [
+            { id: 1, name: "Rod #1", value: 4.5 },
+            { id: 45, name: "Zak #45", value: 4.5 },
+            { id: 13, name: "Kyle #13", value: 4.5 },
+            { id: 15, name: "Kai #15", value: 3.5 },
+            { id: 2, name: "Ashton #", value: 3.0 },
+            { id: 4, name: "Jarrod #4", value: 2.5 },
+            { id: 5, name: "Rich #5", value: 2.5 },
+            { id: 33, name: "Gage #33", value: 2.5 },
+            { id: 23, name: "Matt #23", value: 2.0 },
+            { id: 20, name: "Francois #20", value: 1.5 },
+            { id: 10, name: "Wolff #10", value: 1.5 },
+            { id: 100, name: "Cameron #", value: 1.5 },
+            { id: 101, name: "Karlton #", value: 1.5 }
+        ];
+
+        window.onload = function() {
+            const form = document.getElementById('playerForm');
+            Array.from(form.getElementsByTagName('select')).forEach(select => {
+                const defaultOption = document.createElement('option');
+                defaultOption.textContent = 'Select a player';
+                defaultOption.value = '0';
+                select.appendChild(defaultOption);
+
+                players.forEach(player => {
+                    const option = document.createElement('option');
+                    option.textContent = `${player.name} (${player.value})`;
+                    option.value = player.id;
+                    select.appendChild(option);
+                });
+            });
+        };
+
+       function updateTotal() {
+    const selects = document.querySelectorAll('select');
+    let total = 0;
+    selects.forEach(select => {
+        const player = players.find(p => p.id.toString() === select.value); // Find the player by id
+        if (player) {
+            total += parseFloat(player.value); // Use the player's value for the total calculation
+        }
+    });
+    document.getElementById('total').textContent = 'Total: ' + total.toFixed(1); // Display the formatted total
+}
+
+        function updateSelections() {
+            const selects = document.querySelectorAll('select');
+            const selectedValues = Array.from(selects).map(select => select.value);
+
+            selects.forEach(select => {
+                Array.from(select.options).forEach(option => {
+                    if (option.value !== '0' && selectedValues.includes(option.value)) {
+                        option.disabled = selectedValues.includes(option.value) && option.value !== select.value;
+                    } else {
+                        option.disabled = false;
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+</html>
