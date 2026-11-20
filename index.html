@@ -11,6 +11,7 @@
         .lineup-row label { width: 75px; }
         .lineup-row select { flex: 1; min-width: 0; padding: 8px; }
         #total { margin: 20px 0; font-size: 1.4rem; font-weight: bold; }
+        #total.over-limit { color: #a00000; }
         #lineupStatus { font-weight: bold; }
         #lineupStatus.over-limit { color: #a00000; }
         #ruleNote { color: #444; }
@@ -177,7 +178,9 @@
             const overPoints = total > activeLimit;
             const overHighClass = division.value === 'adult3' && highClassCount > 2;
             const status = document.getElementById('lineupStatus');
-            document.getElementById('total').textContent = `Lineup total points: ${total.toFixed(1)}`;
+            const totalDisplay = document.getElementById('total');
+            totalDisplay.textContent = `Lineup total points: ${total.toFixed(1)}`;
+            totalDisplay.classList.toggle('over-limit', overPoints);
             if (lineup.length < 5) {
                 if (checkingShortLineup) {
                     status.textContent = lineup.length
