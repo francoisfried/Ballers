@@ -12,12 +12,12 @@
         .lineup-row select { flex: 1; min-width: 0; padding: 8px; }
         #total { margin: 20px 0; font-size: 1.4rem; font-weight: bold; }
         section { border-top: 1px solid #ccc; padding-top: 12px; margin-top: 24px; }
-        #addPlayerForm { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
-        #addPlayerForm label { display: flex; flex-direction: column; gap: 4px; }
-        input, button { font: inherit; padding: 7px; }
+        #addPlayerForm, .edit-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+        #addPlayerForm label, .edit-form label { display: flex; flex-direction: column; gap: 4px; }
+        input, select, button { font: inherit; padding: 7px; }
         input[type="text"] { width: 190px; max-width: 100%; }
         #playerNumber { width: 80px; }
-        input[type="number"] { width: 80px; }
+        .edit-form { width: 100%; }
         .player-row { justify-content: space-between; border-bottom: 1px solid #eee; padding: 5px 0; }
         .player-row span { overflow-wrap: anywhere; }
         .player-row button { flex-shrink: 0; }
@@ -42,7 +42,13 @@
         <form id="addPlayerForm">
             <label>Player name <input id="playerName" type="text" maxlength="80" required></label>
             <label>Player number <input id="playerNumber" type="text" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" required></label>
-            <label>Classification <input id="playerValue" type="number" min="1" max="4.5" step="0.5" required></label>
+            <label>Classification <select id="playerValue" required>
+                <option value="">Choose a class</option>
+                <option value="1.0">1.0</option><option value="1.5">1.5</option>
+                <option value="2.0">2.0</option><option value="2.5">2.5</option>
+                <option value="3.0">3.0</option><option value="3.5">3.5</option>
+                <option value="4.0">4.0</option><option value="4.5">4.5</option>
+            </select></label>
             <button type="submit">Add player</button>
         </form>
         <p id="message" role="status"></p>
@@ -73,6 +79,7 @@
             { id: 23, name: "Matt #23", value: 1.0 }
         ];
         const storageKey = 'ballers-players-v1';
+        const classificationValues = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5];
         const selects = Array.from(document.querySelectorAll('#playerForm select'));
         const message = document.getElementById('message');
 
@@ -91,7 +98,7 @@
                 const saved = JSON.parse(localStorage.getItem(storageKey));
                 if (Array.isArray(saved) && saved.every(player =>
                     typeof player.id === 'string' && typeof player.name === 'string' &&
-                    Number.isFinite(player.value) && player.value >= 1 && player.value <= 4.5)) {
+                    classificationValues.includes(player.value))) {
                     return saved.map(withNumber);
                 }
             } catch (error) { /* Use the original list if browser storage is unavailable. */ }
@@ -142,22 +149,55 @@
                 edit.textContent = 'Edit';
                 edit.setAttribute('aria-label', `Edit ${player.name}`);
                 edit.addEventListener('click', () => {
-                    const name = prompt('Player name:', player.name);
-                    if (name === null) return;
-                    const number = prompt('Player number:', player.number);
-                    if (number === null) return;
-                    const classification = prompt('Classification (1.0 to 4.5, in 0.5 steps):', player.value.toFixed(1));
-                    if (classification === null) return;
-                    const value = Number(classification);
-                    if (!name.trim() || !/^[0-9]{1,3}$/.test(number.trim()) || !classification.trim() || !Number.isFinite(value) || value < 1 || value > 4.5 || value * 2 % 1 !== 0) {
-                        message.textContent = 'Enter a name, a player number (up to 3 digits), and a classification from 1.0 to 4.5 in 0.5 steps.';
-                        return;
-                    }
-                    player.name = name.trim();
-                    player.number = number.trim();
-                    player.value = value;
-                    savePlayers();
-                    render();
+                    const form = document.createElement('form');
+                    form.className = 'edit-form';
+                    const nameLabel = document.createElement('label');
+                    nameLabel.textContent = 'Player name';
+                    const nameInput = document.createElement('input');
+                    nameInput.type = 'text';
+                    nameInput.maxLength = 80;
+                    nameInput.required = true;
+                    nameInput.value = player.name;
+                    nameLabel.append(nameInput);
+                    const numberLabel = document.createElement('label');
+                    numberLabel.textContent = 'Player number';
+                    const numberInput = document.createElement('input');
+                    numberInput.type = 'text';
+                    numberInput.inputMode = 'numeric';
+                    numberInput.pattern = '[0-9]{1,3}';
+                    numberInput.maxLength = 3;
+                    numberInput.required = true;
+                    numberInput.value = player.number;
+                    numberLabel.append(numberInput);
+                    const classLabel = document.createElement('label');
+                    classLabel.textContent = 'Classification';
+                    const classSelect = document.createElement('select');
+                    classSelect.required = true;
+                    classificationValues.forEach(value => classSelect.add(new Option(value.toFixed(1), value.toFixed(1))));
+                    classSelect.value = player.value.toFixed(1);
+                    classLabel.append(classSelect);
+                    const save = document.createElement('button');
+                    save.type = 'submit';
+                    save.textContent = 'Save';
+                    const cancel = document.createElement('button');
+                    cancel.type = 'button';
+                    cancel.textContent = 'Cancel';
+                    cancel.addEventListener('click', render);
+                    form.append(nameLabel, numberLabel, classLabel, save, cancel);
+                    form.addEventListener('submit', event => {
+                        event.preventDefault();
+                        const name = nameInput.value.trim();
+                        const number = numberInput.value.trim();
+                        const value = Number(classSelect.value);
+                        if (!name || !/^[0-9]{1,3}$/.test(number) || !classificationValues.includes(value)) return;
+                        player.name = name;
+                        player.number = number;
+                        player.value = value;
+                        savePlayers();
+                        render();
+                    });
+                    row.replaceChildren(form);
+                    nameInput.focus();
                 });
                 const remove = document.createElement('button');
                 remove.type = 'button';
@@ -180,7 +220,7 @@
             const name = document.getElementById('playerName').value.trim();
             const number = document.getElementById('playerNumber').value.trim();
             const value = Number(document.getElementById('playerValue').value);
-            if (!name || !/^[0-9]{1,3}$/.test(number) || !Number.isFinite(value) || value < 1 || value > 4.5 || value * 2 % 1 !== 0) {
+            if (!name || !/^[0-9]{1,3}$/.test(number) || !classificationValues.includes(value)) {
                 message.textContent = 'Enter a name, a player number (up to 3 digits), and a classification from 1.0 to 4.5 in 0.5 steps.';
                 return;
             }
