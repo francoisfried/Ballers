@@ -3,41 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ballers Calculator</title>
+    <title>Wheelchair Basketball Lineup Calculator</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        select { margin-bottom: 10px; }
-        #total { margin-top: 20px; font-size: 20px; }
+        body { font-family: Arial, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; line-height: 1.5; }
+        h1 { font-size: 1.6rem; }
+        .lineup-row, .player-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+        .lineup-row label { width: 75px; }
+        .lineup-row select { flex: 1; min-width: 0; padding: 8px; }
+        #total { margin: 20px 0; font-size: 1.4rem; font-weight: bold; }
+        #total.over-limit { color: #a00000; }
+        #lineupStatus { font-weight: bold; }
+        #lineupStatus.over-limit { color: #a00000; }
+        #ruleNote { color: #444; }
+        section { border-top: 1px solid #ccc; padding-top: 12px; margin-top: 24px; }
+        #addPlayerForm, .edit-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+        #addPlayerForm label, .edit-form label { display: flex; flex-direction: column; gap: 4px; }
+        input, select, button { font: inherit; padding: 7px; }
+        input[type="text"] { width: 190px; max-width: 100%; }
+        #playerNumber { width: 80px; }
+        .edit-form { width: 100%; }
+        .player-row { justify-content: space-between; border-bottom: 1px solid #eee; padding: 5px 0; }
+        .player-row span { overflow-wrap: anywhere; }
+        .player-row button { flex-shrink: 0; }
+        .roster-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        #rosterConfirmation { border: 1px solid #777; padding: 12px; margin-top: 12px; }
+        #rosterConfirmation p { margin-top: 0; }
+        #message { min-height: 1.5em; }
     </style>
 </head>
 <body>
-    <h2>Player Lineup Calculator</h2>
+    <h1>Wheelchair Basketball Lineup Calculator</h1>
+    <p>Select the rules for your team, then choose up to five players. The point limit and lineup checks update automatically.</p>
+    <label for="division">Lineup rules:</label>
+    <select id="division">
+        <option value="adult1">NWBA Adult Division I</option>
+        <option value="adult2">NWBA Adult Division II</option>
+        <option value="adult3">NWBA Adult Division III</option>
+        <option value="college">NWBA Intercollegiate</option>
+        <option value="women">NWBA Women's Division</option>
+        <option value="iwbf">IWBF</option>
+    </select>
     <form id="playerForm">
-        <div>
-            <label for="dropdown1">Player 1:</label>
-            <select id="dropdown1" onchange="updateSelections(); updateTotal();"></select>
-        </div>
-        <div>
-            <label for="dropdown2">Player 2:</label>
-            <select id="dropdown2" onchange="updateSelections(); updateTotal();"></select>
-        </div>
-        <div>
-            <label for="dropdown3">Player 3:</label>
-            <select id="dropdown3" onchange="updateSelections(); updateTotal();"></select>
-        </div>
-        <div>
-            <label for="dropdown4">Player 4:</label>
-            <select id="dropdown4" onchange="updateSelections(); updateTotal();"></select>
-        </div>
-        <div>
-            <label for="dropdown5">Player 5:</label>
-            <select id="dropdown5" onchange="updateSelections(); updateTotal();"></select>
-        </div>
-        <div id="total">Total: 0.0</div>
+        <div class="lineup-row"><label for="dropdown1">Player 1:</label><select id="dropdown1"></select></div>
+        <div class="lineup-row"><label for="dropdown2">Player 2:</label><select id="dropdown2"></select></div>
+        <div class="lineup-row"><label for="dropdown3">Player 3:</label><select id="dropdown3"></select></div>
+        <div class="lineup-row"><label for="dropdown4">Player 4:</label><select id="dropdown4"></select></div>
+        <div class="lineup-row"><label for="dropdown5">Player 5:</label><select id="dropdown5"></select></div>
+        <div id="shortLineupOption" hidden><label><input id="shortLineup" type="checkbox"> Check a short lineup (four or fewer players)</label></div>
+        <div id="total" aria-live="polite">Lineup total points: 0.0</div>
+        <p id="lineupStatus" aria-live="polite"></p>
+        <p id="ruleNote"></p>
     </form>
 
-    <script> //id matches player number, value is the point classification of the player
-        const players = [
+    <section aria-labelledby="rosterHeading">
+        <h2 id="rosterHeading">Your players</h2>
+        <p>Add your players or load the team roster. Your list is saved in this browser and is not shared with other visitors.</p>
+        <form id="addPlayerForm">
+            <label>Player name <input id="playerName" type="text" maxlength="80" required></label>
+            <label>Jersey number <input id="playerNumber" type="text" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" required></label>
+            <label>Classification <select id="playerValue" required>
+                <option value="">Select points</option>
+                <option value="1.0">1.0</option><option value="1.5">1.5</option>
+                <option value="2.0">2.0</option><option value="2.5">2.5</option>
+                <option value="3.0">3.0</option><option value="3.5">3.5</option>
+                <option value="4.0">4.0</option><option value="4.5">4.5</option>
+            </select></label>
+            <button type="submit">Add player</button>
+        </form>
+        <p id="message" role="status"></p>
+        <div class="roster-actions">
+            <button id="clearPlayers" type="button">Remove all players</button>
+            <button id="resetPlayers" type="button">Load my team’s roster</button>
+        </div>
+        <div id="rosterConfirmation" hidden>
+            <p id="confirmationText"></p>
+            <button id="confirmRosterAction" type="button">Confirm</button>
+            <button id="cancelRosterAction" type="button">Cancel</button>
+        </div>
+        <p id="emptyRoster" hidden>No players in your list yet.</p>
+        <div id="playerList"></div>
+    </section>
+
+    <script>
+        const defaultPlayers = [
             { id: 1, name: "Rod #1", value: 4.5 },
             { id: 45, name: "Zak #45", value: 4.5 },
             { id: 13, name: "Kyle #13", value: 4.5 },
@@ -58,71 +106,244 @@
             { id: 6, name: "Zakhar #6", value: 1.0 },
             { id: 23, name: "Matt #23", value: 1.0 }
         ];
-        
-      
-            //{ id: 1, name: "Rod #1", value: 4.5 },
-            //{ id: 45, name: "Zak #45", value: 4.5 },
-            //{ id: 13, name: "Kyle #13", value: 4.5 },
-            //{ id: 55, name: "Chris (Coach) #55", value: 4.0 },
-            //{ id: 15, name: "Kai #15", value: 3.5 },
-            //{ id: 31, name: "Shanice #31", value: 3.5 },
-            //{ id: 11, name: "Korin #11", value: 3.0 },
-            //{ id: 5, name: "Anderson #5", value: 3.0 },
-            //{ id: 25, name: "Luis #25", value: 3.0 },
-            //{ id: 4, name: "Jarrod #4", value: 2.5 },
-            //{ id: 33, name: "Gage #33", value: 2.5 },
-            //{ id: 8, name: "Karlton #8", value: 2.5 },
-            //{ id: 24, name: "Esteban #24", value: 2.5 },
-            //{ id: 2, name: "Caden #2", value: 2.0 },
-            //{ id: 20, name: "Francois #20", value: 1.5 },
-            //{ id: 10, name: "Wolff #10", value: 1.5 },
-            //{ id: 22, name: "Carlos #22", value: 1.5 },
-            //{ id: 6, name: "Zakhar #6", value: 1.0 },
-            //{ id: 23, name: "Matt #23", value: 1.0 }
-            
-        window.onload = function() {
-            const form = document.getElementById('playerForm');
-            Array.from(form.getElementsByTagName('select')).forEach(select => {
-                const defaultOption = document.createElement('option');
-                defaultOption.textContent = 'Select a player';
-                defaultOption.value = '0';
-                select.appendChild(defaultOption);
-
-                players.forEach(player => {
-                    const option = document.createElement('option');
-                    option.textContent = `${player.name} (${player.value})`;
-                    option.value = player.id;
-                    select.appendChild(option);
-                });
-            });
+        const storageKey = 'ballers-players-v1';
+        const classificationValues = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5];
+        const selects = Array.from(document.querySelectorAll('#playerForm select'));
+        const division = document.getElementById('division');
+        const divisionRules = {
+            adult1: { limit: 15, note: 'NWBA policy includes a one-point reduction for women playing on men’s teams and a 16-point allowance when a woman is on court. Neither is applied here.' },
+            adult2: { limit: 15, note: 'NWBA policy includes a one-point reduction for women playing on men’s teams and a 16-point allowance when a woman is on court. Neither is applied here.' },
+            adult3: { limit: 15, note: 'Only two players classified 3.5 or higher may be on court. NWBA policy also includes a one-point reduction for women playing on men’s teams and a 16-point allowance when a woman is on court. Neither is applied here.' },
+            college: { limit: 14, note: 'A short lineup of four or fewer players has an 11.0-point limit. NWBA policy lowers the classification of women playing on men’s teams by one point; that adjustment is not applied here.' },
+            women: { limit: 15, note: 'Check the current event rules for any other lineup requirements.' },
+            iwbf: { limit: 14, note: 'The 14.0-point limit applies to IWBF official competitions.' }
         };
+        try {
+            const savedDivision = localStorage.getItem('ballers-division-v1');
+            if (Object.hasOwn(divisionRules, savedDivision)) division.value = savedDivision;
+        } catch (error) { /* The selector still works when browser storage is unavailable. */ }
+        const message = document.getElementById('message');
+        const shortLineup = document.getElementById('shortLineup');
+        const shortLineupOption = document.getElementById('shortLineupOption');
 
-       function updateTotal() {
-    const selects = document.querySelectorAll('select');
-    let total = 0;
-    selects.forEach(select => {
-        const player = players.find(p => p.id.toString() === select.value); // Find the player by id
-        if (player) {
-            total += parseFloat(player.value); // Use the player's value for the total calculation
+        function withNumber(player) {
+            if (typeof player.number === 'string') return player;
+            const match = player.name.match(/^(.*) #([0-9]+)$/);
+            return match ? { ...player, name: match[1], number: match[2] } : { ...player, number: '' };
         }
-    });
-    document.getElementById('total').textContent = 'Total: ' + total.toFixed(1); // Display the formatted total
-}
 
-        function updateSelections() {
-            const selects = document.querySelectorAll('select');
-            const selectedValues = Array.from(selects).map(select => select.value);
+        function displayName(player) {
+            return `${player.name}${player.number ? ` #${player.number}` : ''} (${player.value.toFixed(1)})`;
+        }
 
+        function loadPlayers() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(storageKey));
+                if (Array.isArray(saved) && saved.every(player =>
+                    typeof player.id === 'string' && typeof player.name === 'string' &&
+                    classificationValues.includes(player.value))) {
+                    return saved.map(withNumber);
+                }
+            } catch (error) { /* Start with an empty list if browser storage is unavailable. */ }
+            return [];
+        }
+
+        let players = loadPlayers();
+
+        function savePlayers() {
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(players));
+                message.textContent = '';
+                return true;
+            } catch (error) {
+                message.textContent = 'Your browser could not save this list. Changes may disappear when you reload the page.';
+                return false;
+            }
+        }
+
+        function updateLineup() {
+            const selected = selects.map(select => select.value);
             selects.forEach(select => {
-                Array.from(select.options).forEach(option => {
-                    if (option.value !== '0' && selectedValues.includes(option.value)) {
-                        option.disabled = selectedValues.includes(option.value) && option.value !== select.value;
-                    } else {
-                        option.disabled = false;
-                    }
-                });
+                for (const option of select.options) {
+                    option.disabled = option.value !== '' && option.value !== select.value && selected.includes(option.value);
+                }
             });
+            const lineup = selected.map(id => players.find(item => item.id === id)).filter(Boolean);
+            const total = lineup.reduce((sum, player) => sum + player.value, 0);
+            const rule = divisionRules[division.value];
+            const highClassCount = lineup.filter(player => player.value >= 3.5).length;
+            if (division.value !== 'college' || lineup.length === 5) shortLineup.checked = false;
+            shortLineupOption.hidden = division.value !== 'college' || lineup.length === 5;
+            const checkingShortLineup = division.value === 'college' && shortLineup.checked;
+            const activeLimit = checkingShortLineup ? 11 : rule.limit;
+            const overPoints = total > activeLimit;
+            const overHighClass = division.value === 'adult3' && highClassCount > 2;
+            const status = document.getElementById('lineupStatus');
+            const totalDisplay = document.getElementById('total');
+            totalDisplay.textContent = `Lineup total points: ${total.toFixed(1)}`;
+            totalDisplay.classList.toggle('over-limit', overPoints);
+            if (lineup.length < 5) {
+                if (checkingShortLineup) {
+                    status.textContent = lineup.length
+                        ? `Short-lineup base total is ${overPoints ? 'over' : 'within'} the 11.0-point limit.`
+                        : 'Select up to four players. Short-lineup limit: 11.0 points.';
+                } else {
+                    const remaining = 5 - lineup.length;
+                    status.textContent = `${remaining} more player${remaining === 1 ? '' : 's'} to fill the lineup. ${overPoints ? `Current base total is already over the ${activeLimit.toFixed(1)}-point limit.` : `Five-player limit: ${rule.limit.toFixed(1)} points.`}`;
+                }
+                if (overHighClass) status.textContent += ' Division III warning: more than two players are classified 3.5 or higher.';
+            } else if (overPoints || overHighClass) {
+                const reasons = [];
+                if (overPoints) reasons.push(`base total is over the ${activeLimit.toFixed(1)}-point limit`);
+                if (overHighClass) reasons.push('more than two players are classified 3.5 or higher');
+                status.textContent = `Lineup check: ${reasons.join('; ')}. See the rule note below for adjustments not included here.`;
+            } else {
+                status.textContent = `Base total is within the ${rule.limit.toFixed(1)}-point limit${division.value === 'adult3' ? ' and the Division III 3.5+ player limit' : ''}. See the rule note below for adjustments not included here.`;
+            }
+            status.classList.toggle('over-limit', overPoints || overHighClass);
+            document.getElementById('ruleNote').textContent = rule.note;
         }
+
+        function render() {
+            const selected = selects.map(select => select.value);
+            selects.forEach((select, index) => {
+                select.replaceChildren(new Option('Select a player', ''));
+                players.forEach(player => select.add(new Option(displayName(player), player.id)));
+                select.value = players.some(player => player.id === selected[index]) ? selected[index] : '';
+            });
+            const list = document.getElementById('playerList');
+            list.replaceChildren();
+            document.getElementById('emptyRoster').hidden = players.length !== 0;
+            document.getElementById('clearPlayers').disabled = players.length === 0;
+            players.forEach(player => {
+                const row = document.createElement('div');
+                row.className = 'player-row';
+                const label = document.createElement('span');
+                label.textContent = displayName(player);
+                const edit = document.createElement('button');
+                edit.type = 'button';
+                edit.textContent = 'Edit';
+                edit.setAttribute('aria-label', `Edit ${player.name}`);
+                edit.addEventListener('click', () => {
+                    const form = document.createElement('form');
+                    form.className = 'edit-form';
+                    const nameLabel = document.createElement('label');
+                    nameLabel.textContent = 'Player name';
+                    const nameInput = document.createElement('input');
+                    nameInput.type = 'text';
+                    nameInput.maxLength = 80;
+                    nameInput.required = true;
+                    nameInput.value = player.name;
+                    nameLabel.append(nameInput);
+                    const numberLabel = document.createElement('label');
+                    numberLabel.textContent = 'Jersey number';
+                    const numberInput = document.createElement('input');
+                    numberInput.type = 'text';
+                    numberInput.inputMode = 'numeric';
+                    numberInput.pattern = '[0-9]{1,3}';
+                    numberInput.maxLength = 3;
+                    numberInput.required = true;
+                    numberInput.value = player.number;
+                    numberLabel.append(numberInput);
+                    const classLabel = document.createElement('label');
+                    classLabel.textContent = 'Classification';
+                    const classSelect = document.createElement('select');
+                    classSelect.required = true;
+                    classificationValues.forEach(value => classSelect.add(new Option(value.toFixed(1), value.toFixed(1))));
+                    classSelect.value = player.value.toFixed(1);
+                    classLabel.append(classSelect);
+                    const save = document.createElement('button');
+                    save.type = 'submit';
+                    save.textContent = 'Save';
+                    const cancel = document.createElement('button');
+                    cancel.type = 'button';
+                    cancel.textContent = 'Cancel';
+                    cancel.addEventListener('click', render);
+                    form.append(nameLabel, numberLabel, classLabel, save, cancel);
+                    form.addEventListener('submit', event => {
+                        event.preventDefault();
+                        const name = nameInput.value.trim();
+                        const number = numberInput.value.trim();
+                        const value = Number(classSelect.value);
+                        if (!name || !/^[0-9]{1,3}$/.test(number) || !classificationValues.includes(value)) return;
+                        player.name = name;
+                        player.number = number;
+                        player.value = value;
+                        savePlayers();
+                        render();
+                    });
+                    row.replaceChildren(form);
+                    nameInput.focus();
+                });
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.textContent = 'Remove';
+                remove.setAttribute('aria-label', `Remove ${player.name}`);
+                remove.addEventListener('click', () => {
+                    players = players.filter(item => item.id !== player.id);
+                    savePlayers();
+                    render();
+                });
+                row.append(label, edit, remove);
+                list.append(row);
+            });
+            updateLineup();
+        }
+
+        selects.forEach(select => select.addEventListener('change', updateLineup));
+        shortLineup.addEventListener('change', updateLineup);
+        division.addEventListener('change', () => {
+            try { localStorage.setItem('ballers-division-v1', division.value); } catch (error) { /* Keep the choice for this visit. */ }
+            updateLineup();
+        });
+        document.getElementById('addPlayerForm').addEventListener('submit', event => {
+            event.preventDefault();
+            const name = document.getElementById('playerName').value.trim();
+            const number = document.getElementById('playerNumber').value.trim();
+            const value = Number(document.getElementById('playerValue').value);
+            if (!name || !/^[0-9]{1,3}$/.test(number) || !classificationValues.includes(value)) {
+                message.textContent = 'Enter a name, a jersey number (up to 3 digits), and a classification from the list.';
+                return;
+            }
+            players.push({ id: crypto.randomUUID(), name, number, value });
+            savePlayers();
+            event.target.reset();
+            render();
+        });
+        const confirmation = document.getElementById('rosterConfirmation');
+        const confirmButton = document.getElementById('confirmRosterAction');
+        let pendingRosterAction = null;
+        function showRosterConfirmation(action) {
+            pendingRosterAction = action;
+            document.getElementById('confirmationText').textContent = action === 'clear'
+                ? 'Remove every player from your list?'
+                : 'Replace your current list with the team roster? Your changes will be lost.';
+            confirmButton.textContent = action === 'clear' ? 'Yes, remove all players' : 'Yes, load team roster';
+            confirmation.hidden = false;
+            confirmButton.focus();
+        }
+        function applyRosterAction(action) {
+            players = action === 'clear' ? [] : defaultPlayers.map(player => withNumber({ ...player, id: String(player.id) }));
+            confirmation.hidden = true;
+            pendingRosterAction = null;
+            const saved = savePlayers();
+            render();
+            if (saved) message.textContent = action === 'clear' ? 'Player list cleared.' : 'Team roster loaded.';
+        }
+        document.getElementById('clearPlayers').addEventListener('click', () => showRosterConfirmation('clear'));
+        document.getElementById('resetPlayers').addEventListener('click', () => {
+            if (players.length === 0) applyRosterAction('restore');
+            else showRosterConfirmation('restore');
+        });
+        document.getElementById('cancelRosterAction').addEventListener('click', () => {
+            confirmation.hidden = true;
+            pendingRosterAction = null;
+        });
+        confirmButton.addEventListener('click', () => {
+            if (!pendingRosterAction) return;
+            applyRosterAction(pendingRosterAction);
+        });
+        render();
     </script>
 </body>
 </html>
