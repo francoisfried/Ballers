@@ -16,6 +16,7 @@
         #addPlayerForm label { display: flex; flex-direction: column; gap: 4px; }
         input, button { font: inherit; padding: 7px; }
         input[type="text"] { width: 190px; max-width: 100%; }
+        #playerNumber { width: 80px; }
         input[type="number"] { width: 80px; }
         .player-row { justify-content: space-between; border-bottom: 1px solid #eee; padding: 5px 0; }
         .player-row span { overflow-wrap: anywhere; }
@@ -40,6 +41,7 @@
         <p>Your changes are saved in this browser only.</p>
         <form id="addPlayerForm">
             <label>Player name <input id="playerName" type="text" maxlength="80" required></label>
+            <label>Player number <input id="playerNumber" type="text" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" required></label>
             <label>Classification <input id="playerValue" type="number" min="1" max="4.5" step="0.5" required></label>
             <button type="submit">Add player</button>
         </form>
@@ -74,16 +76,26 @@
         const selects = Array.from(document.querySelectorAll('#playerForm select'));
         const message = document.getElementById('message');
 
+        function withNumber(player) {
+            if (typeof player.number === 'string') return player;
+            const match = player.name.match(/^(.*) #([0-9]+)$/);
+            return match ? { ...player, name: match[1], number: match[2] } : { ...player, number: '' };
+        }
+
+        function displayName(player) {
+            return `${player.name}${player.number ? ` #${player.number}` : ''} (${player.value.toFixed(1)})`;
+        }
+
         function loadPlayers() {
             try {
                 const saved = JSON.parse(localStorage.getItem(storageKey));
                 if (Array.isArray(saved) && saved.every(player =>
                     typeof player.id === 'string' && typeof player.name === 'string' &&
                     Number.isFinite(player.value) && player.value >= 1 && player.value <= 4.5)) {
-                    return saved;
+                    return saved.map(withNumber);
                 }
             } catch (error) { /* Use the original list if browser storage is unavailable. */ }
-            return defaultPlayers.map(player => ({ ...player, id: String(player.id) }));
+            return defaultPlayers.map(player => withNumber({ ...player, id: String(player.id) }));
         }
 
         let players = loadPlayers();
@@ -115,7 +127,7 @@
             const selected = selects.map(select => select.value);
             selects.forEach((select, index) => {
                 select.replaceChildren(new Option('Select a player', ''));
-                players.forEach(player => select.add(new Option(`${player.name} (${player.value.toFixed(1)})`, player.id)));
+                players.forEach(player => select.add(new Option(displayName(player), player.id)));
                 select.value = players.some(player => player.id === selected[index]) ? selected[index] : '';
             });
             const list = document.getElementById('playerList');
@@ -124,7 +136,7 @@
                 const row = document.createElement('div');
                 row.className = 'player-row';
                 const label = document.createElement('span');
-                label.textContent = `${player.name} (${player.value.toFixed(1)})`;
+                label.textContent = displayName(player);
                 const edit = document.createElement('button');
                 edit.type = 'button';
                 edit.textContent = 'Edit';
@@ -132,14 +144,17 @@
                 edit.addEventListener('click', () => {
                     const name = prompt('Player name:', player.name);
                     if (name === null) return;
+                    const number = prompt('Player number:', player.number);
+                    if (number === null) return;
                     const classification = prompt('Classification (1.0 to 4.5, in 0.5 steps):', player.value.toFixed(1));
                     if (classification === null) return;
                     const value = Number(classification);
-                    if (!name.trim() || !classification.trim() || !Number.isFinite(value) || value < 1 || value > 4.5 || value * 2 % 1 !== 0) {
-                        message.textContent = 'Enter a name and a classification from 1.0 to 4.5 in 0.5 steps.';
+                    if (!name.trim() || !/^[0-9]{1,3}$/.test(number.trim()) || !classification.trim() || !Number.isFinite(value) || value < 1 || value > 4.5 || value * 2 % 1 !== 0) {
+                        message.textContent = 'Enter a name, a player number (up to 3 digits), and a classification from 1.0 to 4.5 in 0.5 steps.';
                         return;
                     }
                     player.name = name.trim();
+                    player.number = number.trim();
                     player.value = value;
                     savePlayers();
                     render();
@@ -163,19 +178,20 @@
         document.getElementById('addPlayerForm').addEventListener('submit', event => {
             event.preventDefault();
             const name = document.getElementById('playerName').value.trim();
+            const number = document.getElementById('playerNumber').value.trim();
             const value = Number(document.getElementById('playerValue').value);
-            if (!name || !Number.isFinite(value) || value < 1 || value > 4.5 || value * 2 % 1 !== 0) {
-                message.textContent = 'Enter a name and a classification from 1.0 to 4.5 in 0.5 steps.';
+            if (!name || !/^[0-9]{1,3}$/.test(number) || !Number.isFinite(value) || value < 1 || value > 4.5 || value * 2 % 1 !== 0) {
+                message.textContent = 'Enter a name, a player number (up to 3 digits), and a classification from 1.0 to 4.5 in 0.5 steps.';
                 return;
             }
-            players.push({ id: crypto.randomUUID(), name, value });
+            players.push({ id: crypto.randomUUID(), name, number, value });
             savePlayers();
             event.target.reset();
             render();
         });
         document.getElementById('resetPlayers').addEventListener('click', () => {
             if (!confirm('Restore the original player list? Your changes will be removed.')) return;
-            players = defaultPlayers.map(player => ({ ...player, id: String(player.id) }));
+            players = defaultPlayers.map(player => withNumber({ ...player, id: String(player.id) }));
             savePlayers();
             render();
         });
