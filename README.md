@@ -5,6 +5,6 @@ You can select 5 players, each assigned a point value reflecting their functiona
 
 Rule sources: [NWBA classification](https://www.nwba.org/classification), [NWBA rule book](https://cdn1.sportngin.com/attachments/document/a6a3-2994457/2023-24_NWBA_Rule_Book.pdf), [NWBA intercollegiate guidelines](https://cdn1.sportngin.com/attachments/document/4378-3553227/Intercollegiate_Division_Guidelines_-_2025-2026_-_Not_Formatted.pdf), [NWBA policies and procedures](https://cdn1.sportngin.com/attachments/document/9ab1-3089082/NWBA_Policies_and_Procedures_-_Revised_Oct_23__2023.pdf), and [IWBF classification](https://www.iwbf.org/our-sport/classification).
 
-Visitors can add, edit, and remove player names, player numbers, and classifications in the browser. Player numbers are shown for reference; only classifications count toward the total. Changes are saved locally on that device; the player list can be cleared or restored to the original roster with the buttons below it. The site does not have a shared roster or server-side storage.
+Visitors can add, edit, and remove player names, jersey numbers, and classifications in the browser. Jersey numbers are shown for reference; only classifications count toward the total. Changes are saved in that browser. The **Remove all players** and **Restore starter list** actions use an on-page confirmation. The site does not have a shared roster or server-side storage.
 
 Classification is selected from the eight IWBF/NWBA classes: 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, and 4.5.

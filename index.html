@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ballers Calculator</title>
+    <title>Wheelchair Basketball Lineup Calculator</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; line-height: 1.5; }
         h1 { font-size: 1.6rem; }
@@ -24,12 +24,15 @@
         .player-row { justify-content: space-between; border-bottom: 1px solid #eee; padding: 5px 0; }
         .player-row span { overflow-wrap: anywhere; }
         .player-row button { flex-shrink: 0; }
+        .roster-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        #rosterConfirmation { border: 1px solid #777; padding: 12px; margin-top: 12px; }
+        #rosterConfirmation p { margin-top: 0; }
         #message { min-height: 1.5em; }
     </style>
 </head>
 <body>
-    <h1>Player Lineup Calculator</h1>
-    <p>Choose up to five players to see the total classification points.</p>
+    <h1>Wheelchair Basketball Lineup Calculator</h1>
+    <p>Choose a competition and up to five players. The calculator adds their classification points and shows the applicable limit.</p>
     <label for="division">Competition:</label>
     <select id="division">
         <option value="adult1">NWBA Adult Division I</option>
@@ -45,19 +48,19 @@
         <div class="lineup-row"><label for="dropdown3">Player 3:</label><select id="dropdown3"></select></div>
         <div class="lineup-row"><label for="dropdown4">Player 4:</label><select id="dropdown4"></select></div>
         <div class="lineup-row"><label for="dropdown5">Player 5:</label><select id="dropdown5"></select></div>
-        <div id="total" aria-live="polite">Total: 0.0</div>
+        <div id="total" aria-live="polite">Lineup points: 0.0</div>
         <p id="lineupStatus" aria-live="polite"></p>
         <p id="ruleNote"></p>
     </form>
 
     <section aria-labelledby="rosterHeading">
-        <h2 id="rosterHeading">Manage your player list</h2>
-        <p>Your changes are saved in this browser only.</p>
+        <h2 id="rosterHeading">Your players</h2>
+        <p>Add, edit, or remove players. Your list is saved in this browser and is not shared with other visitors.</p>
         <form id="addPlayerForm">
             <label>Player name <input id="playerName" type="text" maxlength="80" required></label>
-            <label>Player number <input id="playerNumber" type="text" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" required></label>
+            <label>Jersey number <input id="playerNumber" type="text" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" required></label>
             <label>Classification <select id="playerValue" required>
-                <option value="">Choose a class</option>
+                <option value="">Select points</option>
                 <option value="1.0">1.0</option><option value="1.5">1.5</option>
                 <option value="2.0">2.0</option><option value="2.5">2.5</option>
                 <option value="3.0">3.0</option><option value="3.5">3.5</option>
@@ -67,8 +70,15 @@
         </form>
         <p id="message" role="status"></p>
         <div id="playerList"></div>
-        <button id="clearPlayers" type="button">Clear player list</button>
-        <button id="resetPlayers" type="button">Restore original player list</button>
+        <div class="roster-actions">
+            <button id="clearPlayers" type="button">Remove all players</button>
+            <button id="resetPlayers" type="button">Restore starter list</button>
+        </div>
+        <div id="rosterConfirmation" hidden>
+            <p id="confirmationText"></p>
+            <button id="confirmRosterAction" type="button">Confirm</button>
+            <button id="cancelRosterAction" type="button">Cancel</button>
+        </div>
     </section>
 
     <script>
@@ -98,12 +108,12 @@
         const selects = Array.from(document.querySelectorAll('#playerForm select'));
         const division = document.getElementById('division');
         const divisionRules = {
-            adult1: { limit: 15, note: 'Standard adult limit. This calculator does not apply adjustments for women playing on men’s teams.' },
-            adult2: { limit: 15, note: 'Standard adult limit. This calculator does not apply adjustments for women playing on men’s teams.' },
-            adult3: { limit: 15, note: 'No more than two players classified 3.5 or higher may play at once. Adjustments for women playing on men’s teams are not applied.' },
-            college: { limit: 14, note: 'Intercollegiate limit: 14.0 with five players, 11.0 with four or fewer. Adjustments for women playing on men’s teams are not applied.' },
-            women: { limit: 15, note: 'Standard NWBA Women’s Division limit. Check current event rules for other requirements.' },
-            iwbf: { limit: 14, note: 'IWBF five-player limit for official competitions.' }
+            adult1: { limit: 15, note: 'Women playing on a men’s team may receive a point adjustment. This calculator uses each player’s listed classification.' },
+            adult2: { limit: 15, note: 'Women playing on a men’s team may receive a point adjustment. This calculator uses each player’s listed classification.' },
+            adult3: { limit: 15, note: 'Only two players classified 3.5 or higher may be on court. Point adjustments for women playing on a men’s team are not included.' },
+            college: { limit: 14, note: 'The limit is 11.0 with four or fewer players. Point adjustments for women playing on a men’s team are not included.' },
+            women: { limit: 15, note: 'Check the current event rules for any other lineup requirements.' },
+            iwbf: { limit: 14, note: 'The 14.0-point limit applies to IWBF official competitions.' }
         };
         try {
             const savedDivision = localStorage.getItem('ballers-division-v1');
@@ -139,8 +149,10 @@
             try {
                 localStorage.setItem(storageKey, JSON.stringify(players));
                 message.textContent = '';
+                return true;
             } catch (error) {
-                message.textContent = 'Changes will last until you close or reload this page. Browser storage is unavailable.';
+                message.textContent = 'Your browser could not save this list. Changes may disappear when you reload the page.';
+                return false;
             }
         }
 
@@ -159,17 +171,19 @@
             const overPoints = total > activeLimit;
             const overHighClass = division.value === 'adult3' && highClassCount > 2;
             const status = document.getElementById('lineupStatus');
-            document.getElementById('total').textContent = `Total: ${total.toFixed(1)}`;
+            document.getElementById('total').textContent = `Lineup points: ${total.toFixed(1)}`;
             if (lineup.length < 5) {
                 const remaining = 5 - lineup.length;
-                status.textContent = `Select ${remaining} more player${remaining === 1 ? '' : 's'} for a five-player lineup. ${division.value === 'college' ? `${activeLimit.toFixed(1)}-point limit for four or fewer players${lineup.length ? `: ${overPoints ? 'exceeded' : 'within limit'}` : ''}.` : `Five-player limit: ${rule.limit.toFixed(1)}.`}`;
+                status.textContent = division.value === 'college'
+                    ? `${remaining} more player${remaining === 1 ? '' : 's'} to fill the lineup. ${lineup.length ? `Current total is ${overPoints ? 'over' : 'within'} the ${activeLimit.toFixed(1)}-point limit for four or fewer players.` : `Limit: ${activeLimit.toFixed(1)} points with four or fewer players.`}`
+                    : `${remaining} more player${remaining === 1 ? '' : 's'} to fill the lineup. Five-player limit: ${rule.limit.toFixed(1)} points.`;
             } else if (overPoints || overHighClass) {
                 const reasons = [];
                 if (overPoints) reasons.push(`over the ${activeLimit.toFixed(1)}-point limit`);
                 if (overHighClass) reasons.push('more than two players are classified 3.5 or higher');
-                status.textContent = `Lineup exceeds this division’s standard rules: ${reasons.join('; ')}.`;
+                status.textContent = `Lineup exceeds the selected rules: ${reasons.join('; ')}.`;
             } else {
-                status.textContent = `Base total is within the ${rule.limit.toFixed(1)}-point limit${division.value === 'adult3' ? ' and Division III high-class limit' : ''}.`;
+                status.textContent = `Lineup is within the ${rule.limit.toFixed(1)}-point limit${division.value === 'adult3' ? ' and the Division III 3.5+ player limit' : ''}. See the note below for rules not included here.`;
             }
             status.classList.toggle('over-limit', overPoints || (lineup.length === 5 && overHighClass));
             document.getElementById('ruleNote').textContent = rule.note;
@@ -205,7 +219,7 @@
                     nameInput.value = player.name;
                     nameLabel.append(nameInput);
                     const numberLabel = document.createElement('label');
-                    numberLabel.textContent = 'Player number';
+                    numberLabel.textContent = 'Jersey number';
                     const numberInput = document.createElement('input');
                     numberInput.type = 'text';
                     numberInput.inputMode = 'numeric';
@@ -270,7 +284,7 @@
             const number = document.getElementById('playerNumber').value.trim();
             const value = Number(document.getElementById('playerValue').value);
             if (!name || !/^[0-9]{1,3}$/.test(number) || !classificationValues.includes(value)) {
-                message.textContent = 'Enter a name, a player number (up to 3 digits), and a classification from 1.0 to 4.5 in 0.5 steps.';
+                message.textContent = 'Enter a name, a jersey number (up to 3 digits), and a classification from the list.';
                 return;
             }
             players.push({ id: crypto.randomUUID(), name, number, value });
@@ -278,17 +292,33 @@
             event.target.reset();
             render();
         });
-        document.getElementById('resetPlayers').addEventListener('click', () => {
-            if (!confirm('Restore the original player list? Your changes will be removed.')) return;
-            players = defaultPlayers.map(player => withNumber({ ...player, id: String(player.id) }));
-            savePlayers();
-            render();
+        const confirmation = document.getElementById('rosterConfirmation');
+        const confirmButton = document.getElementById('confirmRosterAction');
+        let pendingRosterAction = null;
+        function showRosterConfirmation(action) {
+            pendingRosterAction = action;
+            document.getElementById('confirmationText').textContent = action === 'clear'
+                ? 'Remove every player from your list?'
+                : 'Replace your list with the starter players? Your changes will be lost.';
+            confirmButton.textContent = action === 'clear' ? 'Yes, remove all players' : 'Yes, restore starter list';
+            confirmation.hidden = false;
+            confirmButton.focus();
+        }
+        document.getElementById('clearPlayers').addEventListener('click', () => showRosterConfirmation('clear'));
+        document.getElementById('resetPlayers').addEventListener('click', () => showRosterConfirmation('restore'));
+        document.getElementById('cancelRosterAction').addEventListener('click', () => {
+            confirmation.hidden = true;
+            pendingRosterAction = null;
         });
-        document.getElementById('clearPlayers').addEventListener('click', () => {
-            if (!confirm('Remove every player from your list?')) return;
-            players = [];
-            savePlayers();
+        confirmButton.addEventListener('click', () => {
+            if (!pendingRosterAction) return;
+            const action = pendingRosterAction;
+            players = action === 'clear' ? [] : defaultPlayers.map(player => withNumber({ ...player, id: String(player.id) }));
+            confirmation.hidden = true;
+            pendingRosterAction = null;
+            const saved = savePlayers();
             render();
+            if (saved) message.textContent = action === 'clear' ? 'Player list cleared.' : 'Starter player list restored.';
         });
         render();
     </script>
