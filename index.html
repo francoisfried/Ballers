@@ -187,6 +187,7 @@
                     const remaining = 5 - lineup.length;
                     status.textContent = `${remaining} more player${remaining === 1 ? '' : 's'} to fill the lineup. ${overPoints ? `Current base total is already over the ${activeLimit.toFixed(1)}-point limit.` : `Five-player limit: ${rule.limit.toFixed(1)} points.`}`;
                 }
+                if (overHighClass) status.textContent += ' Division III warning: more than two players are classified 3.5 or higher.';
             } else if (overPoints || overHighClass) {
                 const reasons = [];
                 if (overPoints) reasons.push(`base total is over the ${activeLimit.toFixed(1)}-point limit`);
@@ -195,7 +196,7 @@
             } else {
                 status.textContent = `Base total is within the ${rule.limit.toFixed(1)}-point limit${division.value === 'adult3' ? ' and the Division III 3.5+ player limit' : ''}. See the rule note below for adjustments not included here.`;
             }
-            status.classList.toggle('over-limit', overPoints || (lineup.length === 5 && overHighClass));
+            status.classList.toggle('over-limit', overPoints || overHighClass);
             document.getElementById('ruleNote').textContent = rule.note;
         }
 
