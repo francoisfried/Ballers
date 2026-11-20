@@ -11,6 +11,9 @@
         .lineup-row label { width: 75px; }
         .lineup-row select { flex: 1; min-width: 0; padding: 8px; }
         #total { margin: 20px 0; font-size: 1.4rem; font-weight: bold; }
+        #lineupStatus { font-weight: bold; }
+        #lineupStatus.over-limit { color: #a00000; }
+        #ruleNote { color: #444; }
         section { border-top: 1px solid #ccc; padding-top: 12px; margin-top: 24px; }
         #addPlayerForm, .edit-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
         #addPlayerForm label, .edit-form label { display: flex; flex-direction: column; gap: 4px; }
@@ -27,6 +30,15 @@
 <body>
     <h1>Player Lineup Calculator</h1>
     <p>Choose up to five players to see the total classification points.</p>
+    <label for="division">Competition:</label>
+    <select id="division">
+        <option value="adult1">NWBA Adult Division I</option>
+        <option value="adult2">NWBA Adult Division II</option>
+        <option value="adult3">NWBA Adult Division III</option>
+        <option value="college">NWBA Intercollegiate</option>
+        <option value="women">NWBA Women's Division</option>
+        <option value="iwbf">IWBF</option>
+    </select>
     <form id="playerForm">
         <div class="lineup-row"><label for="dropdown1">Player 1:</label><select id="dropdown1"></select></div>
         <div class="lineup-row"><label for="dropdown2">Player 2:</label><select id="dropdown2"></select></div>
@@ -34,6 +46,8 @@
         <div class="lineup-row"><label for="dropdown4">Player 4:</label><select id="dropdown4"></select></div>
         <div class="lineup-row"><label for="dropdown5">Player 5:</label><select id="dropdown5"></select></div>
         <div id="total" aria-live="polite">Total: 0.0</div>
+        <p id="lineupStatus" aria-live="polite"></p>
+        <p id="ruleNote"></p>
     </form>
 
     <section aria-labelledby="rosterHeading">
@@ -81,6 +95,19 @@
         const storageKey = 'ballers-players-v1';
         const classificationValues = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5];
         const selects = Array.from(document.querySelectorAll('#playerForm select'));
+        const division = document.getElementById('division');
+        const divisionRules = {
+            adult1: { limit: 15, note: 'Standard adult limit. This calculator does not apply adjustments for women playing on men’s teams.' },
+            adult2: { limit: 15, note: 'Standard adult limit. This calculator does not apply adjustments for women playing on men’s teams.' },
+            adult3: { limit: 15, note: 'No more than two players classified 3.5 or higher may play at once. Adjustments for women playing on men’s teams are not applied.' },
+            college: { limit: 14, note: 'Intercollegiate five-player limit. This calculator does not apply adjustments for women playing on men’s teams.' },
+            women: { limit: 15, note: 'Standard NWBA Women’s Division limit. Check current event rules for other requirements.' },
+            iwbf: { limit: 14, note: 'IWBF five-player limit for official competitions.' }
+        };
+        try {
+            const savedDivision = localStorage.getItem('ballers-division-v1');
+            if (Object.hasOwn(divisionRules, savedDivision)) division.value = savedDivision;
+        } catch (error) { /* The selector still works when browser storage is unavailable. */ }
         const message = document.getElementById('message');
 
         function withNumber(player) {
@@ -123,11 +150,26 @@
                     option.disabled = option.value !== '' && option.value !== select.value && selected.includes(option.value);
                 }
             });
-            const total = selects.reduce((sum, select) => {
-                const player = players.find(item => item.id === select.value);
-                return sum + (player ? player.value : 0);
-            }, 0);
+            const lineup = selected.map(id => players.find(item => item.id === id)).filter(Boolean);
+            const total = lineup.reduce((sum, player) => sum + player.value, 0);
+            const rule = divisionRules[division.value];
+            const highClassCount = lineup.filter(player => player.value >= 3.5).length;
+            const overPoints = total > rule.limit;
+            const overHighClass = division.value === 'adult3' && highClassCount > 2;
+            const status = document.getElementById('lineupStatus');
             document.getElementById('total').textContent = `Total: ${total.toFixed(1)}`;
+            if (lineup.length < 5) {
+                status.textContent = `Select ${5 - lineup.length} more player${lineup.length === 4 ? '' : 's'} to check the lineup. Limit: ${rule.limit.toFixed(1)}.`;
+            } else if (overPoints || overHighClass) {
+                const reasons = [];
+                if (overPoints) reasons.push(`over the ${rule.limit.toFixed(1)}-point limit`);
+                if (overHighClass) reasons.push('more than two players are classified 3.5 or higher');
+                status.textContent = `Lineup exceeds this division’s standard rules: ${reasons.join('; ')}.`;
+            } else {
+                status.textContent = `Within the ${rule.limit.toFixed(1)}-point limit${division.value === 'adult3' ? ' and Division III high-class limit' : ''}.`;
+            }
+            status.classList.toggle('over-limit', lineup.length === 5 && (overPoints || overHighClass));
+            document.getElementById('ruleNote').textContent = rule.note;
         }
 
         function render() {
@@ -215,6 +257,10 @@
         }
 
         selects.forEach(select => select.addEventListener('change', updateLineup));
+        division.addEventListener('change', () => {
+            try { localStorage.setItem('ballers-division-v1', division.value); } catch (error) { /* Keep the choice for this visit. */ }
+            updateLineup();
+        });
         document.getElementById('addPlayerForm').addEventListener('submit', event => {
             event.preventDefault();
             const name = document.getElementById('playerName').value.trim();
