@@ -1,4 +1,4 @@
-# Wheelchair Basketball
+# Wheelchair Basketball Player Lineup Calculator
 This player lineup calculator supports NWBA adult Divisions I, II, and III; NWBA Intercollegiate and Women's Divisions; and IWBF official competitions.
 
 You can select 5 players, each assigned a point value reflecting their functional ability. The NWBA classifies players from 1.0 to 4.5 points, with lower numbers indicating greater impairment and higher numbers indicating less. The calculator shows the base classification total against the selected rules' standard limit: 15.0 for NWBA adult Divisions I–III and Women's Division, and 14.0 for NWBA Intercollegiate and IWBF. Intercollegiate play defaults to the five-player 14.0-point limit; an optional short-lineup check uses the 11.0-point limit for four or fewer players. Division III also limits lineups to two players classified 3.5 or higher. NWBA policy includes a one-point classification reduction for women playing on men's teams and a 16-point allowance for adult lineups with a woman on court. The calculator does not apply either adjustment; consult the current event rules before relying on the result for eligibility.
