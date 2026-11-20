@@ -48,7 +48,7 @@
         <div class="lineup-row"><label for="dropdown3">Player 3:</label><select id="dropdown3"></select></div>
         <div class="lineup-row"><label for="dropdown4">Player 4:</label><select id="dropdown4"></select></div>
         <div class="lineup-row"><label for="dropdown5">Player 5:</label><select id="dropdown5"></select></div>
-        <div id="total" aria-live="polite">Lineup points: 0.0</div>
+        <div id="total" aria-live="polite">Lineup total points: 0.0</div>
         <p id="lineupStatus" aria-live="polite"></p>
         <p id="ruleNote"></p>
     </form>
@@ -171,7 +171,7 @@
             const overPoints = total > activeLimit;
             const overHighClass = division.value === 'adult3' && highClassCount > 2;
             const status = document.getElementById('lineupStatus');
-            document.getElementById('total').textContent = `Lineup points: ${total.toFixed(1)}`;
+            document.getElementById('total').textContent = `Lineup total points: ${total.toFixed(1)}`;
             if (lineup.length < 5) {
                 const remaining = 5 - lineup.length;
                 status.textContent = division.value === 'college'
