@@ -57,7 +57,7 @@
 
     <section aria-labelledby="rosterHeading">
         <h2 id="rosterHeading">Your players</h2>
-        <p>Add, edit, or remove players. Your list is saved in this browser and is not shared with other visitors.</p>
+        <p>Add your players or load the team roster. Your list is saved in this browser and is not shared with other visitors.</p>
         <form id="addPlayerForm">
             <label>Player name <input id="playerName" type="text" maxlength="80" required></label>
             <label>Jersey number <input id="playerNumber" type="text" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" required></label>
@@ -71,16 +71,17 @@
             <button type="submit">Add player</button>
         </form>
         <p id="message" role="status"></p>
-        <div id="playerList"></div>
         <div class="roster-actions">
             <button id="clearPlayers" type="button">Remove all players</button>
-            <button id="resetPlayers" type="button">Restore starter list</button>
+            <button id="resetPlayers" type="button">Load my team’s roster</button>
         </div>
         <div id="rosterConfirmation" hidden>
             <p id="confirmationText"></p>
             <button id="confirmRosterAction" type="button">Confirm</button>
             <button id="cancelRosterAction" type="button">Cancel</button>
         </div>
+        <p id="emptyRoster" hidden>No players in your list yet.</p>
+        <div id="playerList"></div>
     </section>
 
     <script>
@@ -143,8 +144,8 @@
                     classificationValues.includes(player.value))) {
                     return saved.map(withNumber);
                 }
-            } catch (error) { /* Use the original list if browser storage is unavailable. */ }
-            return defaultPlayers.map(player => withNumber({ ...player, id: String(player.id) }));
+            } catch (error) { /* Start with an empty list if browser storage is unavailable. */ }
+            return [];
         }
 
         let players = loadPlayers();
@@ -212,6 +213,8 @@
             });
             const list = document.getElementById('playerList');
             list.replaceChildren();
+            document.getElementById('emptyRoster').hidden = players.length !== 0;
+            document.getElementById('clearPlayers').disabled = players.length === 0;
             players.forEach(player => {
                 const row = document.createElement('div');
                 row.className = 'player-row';
@@ -314,26 +317,31 @@
             pendingRosterAction = action;
             document.getElementById('confirmationText').textContent = action === 'clear'
                 ? 'Remove every player from your list?'
-                : 'Replace your list with the starter players? Your changes will be lost.';
-            confirmButton.textContent = action === 'clear' ? 'Yes, remove all players' : 'Yes, restore starter list';
+                : 'Replace your current list with the team roster? Your changes will be lost.';
+            confirmButton.textContent = action === 'clear' ? 'Yes, remove all players' : 'Yes, load team roster';
             confirmation.hidden = false;
             confirmButton.focus();
         }
+        function applyRosterAction(action) {
+            players = action === 'clear' ? [] : defaultPlayers.map(player => withNumber({ ...player, id: String(player.id) }));
+            confirmation.hidden = true;
+            pendingRosterAction = null;
+            const saved = savePlayers();
+            render();
+            if (saved) message.textContent = action === 'clear' ? 'Player list cleared.' : 'Team roster loaded.';
+        }
         document.getElementById('clearPlayers').addEventListener('click', () => showRosterConfirmation('clear'));
-        document.getElementById('resetPlayers').addEventListener('click', () => showRosterConfirmation('restore'));
+        document.getElementById('resetPlayers').addEventListener('click', () => {
+            if (players.length === 0) applyRosterAction('restore');
+            else showRosterConfirmation('restore');
+        });
         document.getElementById('cancelRosterAction').addEventListener('click', () => {
             confirmation.hidden = true;
             pendingRosterAction = null;
         });
         confirmButton.addEventListener('click', () => {
             if (!pendingRosterAction) return;
-            const action = pendingRosterAction;
-            players = action === 'clear' ? [] : defaultPlayers.map(player => withNumber({ ...player, id: String(player.id) }));
-            confirmation.hidden = true;
-            pendingRosterAction = null;
-            const saved = savePlayers();
-            render();
-            if (saved) message.textContent = action === 'clear' ? 'Player list cleared.' : 'Starter player list restored.';
+            applyRosterAction(pendingRosterAction);
         });
         render();
     </script>
