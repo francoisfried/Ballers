@@ -67,6 +67,7 @@
         </form>
         <p id="message" role="status"></p>
         <div id="playerList"></div>
+        <button id="clearPlayers" type="button">Clear player list</button>
         <button id="resetPlayers" type="button">Restore original player list</button>
     </section>
 
@@ -100,7 +101,7 @@
             adult1: { limit: 15, note: 'Standard adult limit. This calculator does not apply adjustments for women playing on men’s teams.' },
             adult2: { limit: 15, note: 'Standard adult limit. This calculator does not apply adjustments for women playing on men’s teams.' },
             adult3: { limit: 15, note: 'No more than two players classified 3.5 or higher may play at once. Adjustments for women playing on men’s teams are not applied.' },
-            college: { limit: 14, note: 'Intercollegiate five-player limit. This calculator does not apply adjustments for women playing on men’s teams.' },
+            college: { limit: 14, note: 'Intercollegiate limit: 14.0 with five players, 11.0 with four or fewer. Adjustments for women playing on men’s teams are not applied.' },
             women: { limit: 15, note: 'Standard NWBA Women’s Division limit. Check current event rules for other requirements.' },
             iwbf: { limit: 14, note: 'IWBF five-player limit for official competitions.' }
         };
@@ -154,21 +155,23 @@
             const total = lineup.reduce((sum, player) => sum + player.value, 0);
             const rule = divisionRules[division.value];
             const highClassCount = lineup.filter(player => player.value >= 3.5).length;
-            const overPoints = total > rule.limit;
+            const activeLimit = division.value === 'college' && lineup.length < 5 ? 11 : rule.limit;
+            const overPoints = total > activeLimit;
             const overHighClass = division.value === 'adult3' && highClassCount > 2;
             const status = document.getElementById('lineupStatus');
             document.getElementById('total').textContent = `Total: ${total.toFixed(1)}`;
             if (lineup.length < 5) {
-                status.textContent = `Select ${5 - lineup.length} more player${lineup.length === 4 ? '' : 's'} to check the lineup. Limit: ${rule.limit.toFixed(1)}.`;
+                const remaining = 5 - lineup.length;
+                status.textContent = `Select ${remaining} more player${remaining === 1 ? '' : 's'} for a five-player lineup. ${division.value === 'college' ? `${activeLimit.toFixed(1)}-point limit for four or fewer players${lineup.length ? `: ${overPoints ? 'exceeded' : 'within limit'}` : ''}.` : `Five-player limit: ${rule.limit.toFixed(1)}.`}`;
             } else if (overPoints || overHighClass) {
                 const reasons = [];
-                if (overPoints) reasons.push(`over the ${rule.limit.toFixed(1)}-point limit`);
+                if (overPoints) reasons.push(`over the ${activeLimit.toFixed(1)}-point limit`);
                 if (overHighClass) reasons.push('more than two players are classified 3.5 or higher');
                 status.textContent = `Lineup exceeds this division’s standard rules: ${reasons.join('; ')}.`;
             } else {
-                status.textContent = `Within the ${rule.limit.toFixed(1)}-point limit${division.value === 'adult3' ? ' and Division III high-class limit' : ''}.`;
+                status.textContent = `Base total is within the ${rule.limit.toFixed(1)}-point limit${division.value === 'adult3' ? ' and Division III high-class limit' : ''}.`;
             }
-            status.classList.toggle('over-limit', lineup.length === 5 && (overPoints || overHighClass));
+            status.classList.toggle('over-limit', overPoints || (lineup.length === 5 && overHighClass));
             document.getElementById('ruleNote').textContent = rule.note;
         }
 
@@ -278,6 +281,12 @@
         document.getElementById('resetPlayers').addEventListener('click', () => {
             if (!confirm('Restore the original player list? Your changes will be removed.')) return;
             players = defaultPlayers.map(player => withNumber({ ...player, id: String(player.id) }));
+            savePlayers();
+            render();
+        });
+        document.getElementById('clearPlayers').addEventListener('click', () => {
+            if (!confirm('Remove every player from your list?')) return;
+            players = [];
             savePlayers();
             render();
         });
