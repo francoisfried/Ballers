@@ -48,6 +48,7 @@
         <div class="lineup-row"><label for="dropdown3">Player 3:</label><select id="dropdown3"></select></div>
         <div class="lineup-row"><label for="dropdown4">Player 4:</label><select id="dropdown4"></select></div>
         <div class="lineup-row"><label for="dropdown5">Player 5:</label><select id="dropdown5"></select></div>
+        <div id="shortLineupOption" hidden><label><input id="shortLineup" type="checkbox"> Check a short lineup (four or fewer players)</label></div>
         <div id="total" aria-live="polite">Lineup total points: 0.0</div>
         <p id="lineupStatus" aria-live="polite"></p>
         <p id="ruleNote"></p>
@@ -111,7 +112,7 @@
             adult1: { limit: 15, note: 'NWBA policy includes a one-point reduction for women playing on men’s teams and a 16-point allowance when a woman is on court. Neither is applied here.' },
             adult2: { limit: 15, note: 'NWBA policy includes a one-point reduction for women playing on men’s teams and a 16-point allowance when a woman is on court. Neither is applied here.' },
             adult3: { limit: 15, note: 'Only two players classified 3.5 or higher may be on court. NWBA policy also includes a one-point reduction for women playing on men’s teams and a 16-point allowance when a woman is on court. Neither is applied here.' },
-            college: { limit: 14, note: 'The limit is 11.0 with four or fewer players. NWBA policy lowers the classification of women playing on men’s teams by one point; that adjustment is not applied here.' },
+            college: { limit: 14, note: 'A short lineup of four or fewer players has an 11.0-point limit. NWBA policy lowers the classification of women playing on men’s teams by one point; that adjustment is not applied here.' },
             women: { limit: 15, note: 'Check the current event rules for any other lineup requirements.' },
             iwbf: { limit: 14, note: 'The 14.0-point limit applies to IWBF official competitions.' }
         };
@@ -120,6 +121,8 @@
             if (Object.hasOwn(divisionRules, savedDivision)) division.value = savedDivision;
         } catch (error) { /* The selector still works when browser storage is unavailable. */ }
         const message = document.getElementById('message');
+        const shortLineup = document.getElementById('shortLineup');
+        const shortLineupOption = document.getElementById('shortLineupOption');
 
         function withNumber(player) {
             if (typeof player.number === 'string') return player;
@@ -167,16 +170,23 @@
             const total = lineup.reduce((sum, player) => sum + player.value, 0);
             const rule = divisionRules[division.value];
             const highClassCount = lineup.filter(player => player.value >= 3.5).length;
-            const activeLimit = division.value === 'college' && lineup.length < 5 ? 11 : rule.limit;
+            if (division.value !== 'college' || lineup.length === 5) shortLineup.checked = false;
+            shortLineupOption.hidden = division.value !== 'college' || lineup.length === 5;
+            const checkingShortLineup = division.value === 'college' && shortLineup.checked;
+            const activeLimit = checkingShortLineup ? 11 : rule.limit;
             const overPoints = total > activeLimit;
             const overHighClass = division.value === 'adult3' && highClassCount > 2;
             const status = document.getElementById('lineupStatus');
             document.getElementById('total').textContent = `Lineup total points: ${total.toFixed(1)}`;
             if (lineup.length < 5) {
-                const remaining = 5 - lineup.length;
-                status.textContent = division.value === 'college'
-                    ? `${remaining} more player${remaining === 1 ? '' : 's'} to fill the lineup. ${lineup.length ? `Current base total is ${overPoints ? 'over' : 'within'} the ${activeLimit.toFixed(1)}-point limit for four or fewer players.` : `Limit: ${activeLimit.toFixed(1)} points with four or fewer players.`}`
-                    : `${remaining} more player${remaining === 1 ? '' : 's'} to fill the lineup. ${overPoints ? `Current base total is already over the ${activeLimit.toFixed(1)}-point limit.` : `Five-player limit: ${rule.limit.toFixed(1)} points.`}`;
+                if (checkingShortLineup) {
+                    status.textContent = lineup.length
+                        ? `Short-lineup base total is ${overPoints ? 'over' : 'within'} the 11.0-point limit.`
+                        : 'Select up to four players. Short-lineup limit: 11.0 points.';
+                } else {
+                    const remaining = 5 - lineup.length;
+                    status.textContent = `${remaining} more player${remaining === 1 ? '' : 's'} to fill the lineup. ${overPoints ? `Current base total is already over the ${activeLimit.toFixed(1)}-point limit.` : `Five-player limit: ${rule.limit.toFixed(1)} points.`}`;
+                }
             } else if (overPoints || overHighClass) {
                 const reasons = [];
                 if (overPoints) reasons.push(`base total is over the ${activeLimit.toFixed(1)}-point limit`);
@@ -274,6 +284,7 @@
         }
 
         selects.forEach(select => select.addEventListener('change', updateLineup));
+        shortLineup.addEventListener('change', updateLineup);
         division.addEventListener('change', () => {
             try { localStorage.setItem('ballers-division-v1', division.value); } catch (error) { /* Keep the choice for this visit. */ }
             updateLineup();
