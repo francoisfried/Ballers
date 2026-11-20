@@ -14,7 +14,6 @@
         #lineupStatus { font-weight: bold; }
         #lineupStatus.over-limit { color: #a00000; }
         #ruleNote { color: #444; }
-        #rulesHelp { color: #444; margin: 6px 0 16px; }
         section { border-top: 1px solid #ccc; padding-top: 12px; margin-top: 24px; }
         #addPlayerForm, .edit-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
         #addPlayerForm label, .edit-form label { display: flex; flex-direction: column; gap: 4px; }
@@ -33,9 +32,9 @@
 </head>
 <body>
     <h1>Wheelchair Basketball Lineup Calculator</h1>
-    <p>Choose up to five players to check their classification points.</p>
+    <p>Select the rules for your team, then choose up to five players. The point limit and lineup checks update automatically.</p>
     <label for="division">Lineup rules:</label>
-    <select id="division" aria-describedby="rulesHelp">
+    <select id="division">
         <option value="adult1">NWBA Adult Division I</option>
         <option value="adult2">NWBA Adult Division II</option>
         <option value="adult3">NWBA Adult Division III</option>
@@ -43,7 +42,6 @@
         <option value="women">NWBA Women's Division</option>
         <option value="iwbf">IWBF</option>
     </select>
-    <p id="rulesHelp">Changing this selection updates the point limit and any extra lineup checks automatically.</p>
     <form id="playerForm">
         <div class="lineup-row"><label for="dropdown1">Player 1:</label><select id="dropdown1"></select></div>
         <div class="lineup-row"><label for="dropdown2">Player 2:</label><select id="dropdown2"></select></div>
